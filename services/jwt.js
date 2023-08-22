@@ -11,6 +11,7 @@ const createToken = (user) => {
   const payload = {
     _id: user._id,
     username: user.username,
+    ref_user_data: user.ref_user_data,
     iat: moment().unix(),
     exp: moment().add(10, "days").unix(),
   };

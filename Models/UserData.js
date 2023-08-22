@@ -21,9 +21,8 @@ const UserDataSchema = new Schema({
     phone: Number,
     whatsapp: Number,
     email: String,
-    ref_role: {
-        type: Schema.ObjectId,
-        ref: "Role",
+    role: {
+        type: String,
         required : true
     },
     ref_polling_place: {
@@ -42,7 +41,10 @@ const UserDataSchema = new Schema({
         ref: "UserData",
         required : false
     },
-    photo: String,
+    photo: {
+        type: String,
+        default: 'default.png'
+    },
     created_at: {
         type: Date,
         default: Date.now

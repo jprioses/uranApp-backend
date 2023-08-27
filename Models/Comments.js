@@ -5,9 +5,9 @@ const CommentsSchema = new Schema({
         type: String,
         required : true
     },
-    ref_user_data: {
+    ref_users: {
         type: Schema.ObjectId,
-        ref: "UserData",
+        ref: "Users",
         required : true
     },
     created_at: {

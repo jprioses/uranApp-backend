@@ -10,9 +10,9 @@ const NotificationsSchema = new Schema({
         default: Date.now
     },
     description: String,
-    ref_user_data: {
+    ref_users: {
         type: Schema.ObjectId,
-        ref: "UserData",
+        ref: "Users",
         required : true
     },
     created_at: {

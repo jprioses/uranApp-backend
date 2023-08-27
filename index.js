@@ -17,10 +17,10 @@ app.use(express.json());
 app.use(express.urlencoded({extended:true}));
 
 
-const UserRoutes = require('./routes/user');
-const UserDataRoutes = require('./routes/userData');
-app.use('/api/user', UserRoutes);
-app.use('/api/user-data', UserDataRoutes);
+const CredentialsRoutes = require('./routes/credentials');
+const UsersRoutes = require('./routes/users');
+app.use('/api/credentials', CredentialsRoutes);
+app.use('/api/users', UsersRoutes);
 
 //Test route to check if everything is working ok
 app.get('/test-route', (req, res) => {

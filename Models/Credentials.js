@@ -1,6 +1,6 @@
 const {Schema, model} = require('mongoose');
 
-const UserSchema = new Schema({
+const CredentialsSchema = new Schema({
     username: {
         type: String,
         required : true
@@ -9,9 +9,9 @@ const UserSchema = new Schema({
         type: String,
         required : true
     },
-    ref_user_data: {
+    ref_users: {
         type: Schema.ObjectId,
-        ref: "UserData",
+        ref: "Users",
         required : false
     },
     created_at: {
@@ -20,4 +20,4 @@ const UserSchema = new Schema({
     }
 });
 
-module.exports = model('User', UserSchema, 'user');
+module.exports = model('Credentials', CredentialsSchema, 'credentials');

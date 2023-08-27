@@ -1,6 +1,6 @@
 const {Schema, model} = require('mongoose');
 
-const PollingPlaceSchema = new Schema({
+const PollingPlacesSchema = new Schema({
     name: {
         type: String,
         required : true
@@ -16,4 +16,4 @@ const PollingPlaceSchema = new Schema({
     },
 });
 
-module.exports = model('PollingPlace', PollingPlaceSchema, 'polling_places');
+module.exports = model('PollingPlaces', PollingPlacesSchema, 'polling_places');

@@ -1,7 +1,7 @@
 const jwt = require("jwt-simple");
 const moment = require("moment");
 
-const libjwt = require("../services/jwt");
+const libjwt = require("../utils/jwt");
 const secret = libjwt.secret;
 
 //next allows to pass to next middleware or function

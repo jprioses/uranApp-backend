@@ -1,107 +1,72 @@
-const bcrypt = require("bcrypt");
-const Credentials = require("../Models/Credentials");
-const Users = require("../Models/Users");
-const jwt = require("../utils/jwt");
+const JwtService = require("../services/jwt");
+const CredentialsServices = require("../services/credentials");
+const UsersServices = require("../services/users");
+const EncryptServices = require("../services/encrypt");
+const catchedAsync = require("../utils/catchedAsync");
+const { response } = require("../utils/response");
+const ClientError = require("../utils/errors");
 
 //test controller
 const testCredentials = (req, res) => {
-  console.log(req.user)
-  return res.status(200).send({
-    mensaje: "Sent from ./controllers/user,js",
-    usuario: req.user,
-  });
+  conosole.log("Here route");
+  response(res, 200, { user: "Juan Pablo Rios" });
 };
 
 //Create user
 const postCredentials = async (req, res) => {
-  try {
-    let bodyParams = req.body;
+  let bodyParams = req.body;
 
-    if (!bodyParams.username || !bodyParams.password) {
-      throw new Error("Must type username and password");
-    }
+  if (!bodyParams.username || !bodyParams.password)
+    throw new ClientError("Must type username and password");
 
-    const credentialQuery = await Credentials.find({
-      username: bodyParams.username.toLowerCase(),
-    }).then((user) => user);
+  const credentialQuery = await CredentialsServices.findCredentials(bodyParams);
 
-    if (credentialQuery && credentialQuery.length >= 1) {
-      throw new Error("Username already taken");
-    }
+  if (credentialQuery && credentialQuery.length >= 1)
+    throw new ClientError("Username already taken");
 
-    const userQuery = await Users.findById(req.params.user).then(
-      (user) => user
-    );
+  const userQuery = await UsersServices.findUserById(req.params.user);
 
-    if (!userQuery) {
-      throw new Error("Must give valid user id");
-    }
+  if (!userQuery) throw new new ClientError("Must give valid user id")();
 
-    const pwd = await bcrypt.hash(bodyParams.password, 10);
+  const pwd = await EncryptServices.encryptPassword(bodyParams);
 
-    bodyParams.password = pwd;
-    bodyParams.ref_users = req.params.user;
+  bodyParams.password = pwd;
+  bodyParams.ref_users = req.params.user;
 
-    const credential = new Credentials(bodyParams);
+  const credential = await CredentialsServices.saveCredential(bodyParams);
 
-    const savedCredential = await credential.save();
-
-    return res.status(200).json({
-      message: "User added succesfully",
-      user: savedCredential,
-    });
-  } catch (error) {
-    return res.status(500).json({
-      status: "error",
-      message: "Couldnt create user",
-    });
-  }
+  response(res, 200, credential);
 };
 
 const postCredentialsLogin = async (req, res) => {
-  try {
-    const bodyParams = req.body;
+  const bodyParams = req.body;
 
-    if (!bodyParams.username || !bodyParams.password) {
-      throw new Error("Must type username and password");
-    }
+  if (!bodyParams.username || !bodyParams.password)
+    throw new ClientError("Must type username and password");
 
-    const credentialQuery = await Credentials.findOne({
-      username: bodyParams.username.toLowerCase(),
-    }).then((user) => user);
+  const credential = await CredentialsServices.findCredentials(bodyParams);
 
-    if (!credentialQuery) {
-      throw new Error("Incorret username or password");
-    }
+  if (!credential) throw new ClientError("Incorret username");
 
-    const pwd = bcrypt.compareSync(bodyParams.password, credentialQuery.password);
+  const pwd = EncryptServices.decryptPassword(
+    bodyParams.password,
+    credential.password
+  );
 
-    if (!pwd) {
-      throw new Error("Must give valid password");
-    }
+  if (!pwd) throw new ClientError("Incorret password");
 
-    const token = jwt.createToken(credentialQuery);
+  const token = JwtService.createToken(credential);
 
-    return res.status(200).json({
-      message: "Success",
-      user: {
-        
-        _id: credentialQuery._id,
-        username: credentialQuery.username,
-        ref_users: credentialQuery.ref_users
-      },
-      token,
-    });
-  } catch (error) {
-    return res.status(500).json({
-      status: "error",
-      message: "Error while auth user",
-    });
-  }
+  response(res, 200, {
+    _id: credential._id,
+    username: credential.username,
+    ref_users: credential.ref_users,
+    token,
+  });
 };
 
 module.exports = {
   testCredentials,
-  postCredentials,
-  postCredentialsLogin,
+  postCredentials: catchedAsync(postCredentials),
+  postCredentialsLogin: catchedAsync(postCredentialsLogin),
 };

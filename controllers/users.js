@@ -1,5 +1,9 @@
-const validator = require("validator");
 const Users = require("../Models/Users");
+const UsersServices = require("../services/users");
+const ValidateServices = require("../services/validate");
+const catchedAsync = require("../utils/catchedAsync");
+const { response } = require("../utils/response");
+const ClientError = require("../utils/errors");
 
 const testUsers = (req, res) => {
   return res.status(200).send({
@@ -7,191 +11,121 @@ const testUsers = (req, res) => {
   });
 };
 
-const postUsers = async (req, res) => {
-  try {
-    const bodyParams = req.body;
+const postUser = async (req, res) => {
+  const bodyParams = req.body;
+  bodyParams.role = req.params.role;
 
-    let checkData =
-      !validator.isEmpty(bodyParams.name) &&
-      !validator.isEmpty(bodyParams.surname) &&
-      !validator.isEmpty(bodyParams.national_id) &&
-      !validator.isEmpty(bodyParams.address) &&
-      (validator.equals(req.params.role, "godfather") ||
-        (validator.equals(req.params.role, "leader") &&
-          !validator.isEmpty(req.params.ref_godfather)) ||
-        (validator.equals(req.params.role, "voter") &&
-          !validator.isEmpty(req.params.ref_godfather) &&
-          !validator.isEmpty(req.params.ref_leader)));
+  let checkData = ValidateServices.validateNewUserData(bodyParams);
 
-    if (!checkData) throw new Error("Missing some data");
+  if (!checkData) throw new ClientError("Missing some data");
 
-    bodyParams.role = req.params.role;
-    if (req.params.ref_godfather) bodyParams.ref_godfather = req.params.ref_godfather;
-    if (req.params.ref_leader) bodyParams.ref_leader = req.params.ref_leader;
+  if (req.params.ref_godfather)
+    bodyParams.ref_godfather = req.params.ref_godfather;
+  if (req.params.ref_leader) bodyParams.ref_leader = req.params.ref_leader;
 
-    const user = new Users(bodyParams);
+  const user = await UsersServices.createUser(bodyParams);
 
-    const savedUser = await user.save();
-
-    return res.status(200).json({
-      status: "Ok",
-      user: savedUser,
-      message: "User created succesfully",
-    });
-  } catch (error) {
-    return res.status(404).json({
-      status: "Not found",
-      mensaje: "Couldnt create user",
-    });
-  }
+  response(res, 200, user);
 };
 
 //An idea to make this with only one reference into the collection is to look for all the leaders who reference a godfather and then look for voters with some of the leader references that has been already found
 const getUsersDashboard = async (req, res) => {
-  try {
-    const userId = req.user.ref_users;
-    //const userId = '64e5035238cc08fccbc19a5b';
+  const userId = req.user.ref_users;
+  //const userId = '64e5035238cc08fccbc19a5b';
 
-    const userQuery = await Users.findById(userId).then((user) => user);
-    let usersQuery;
-    if (userQuery.role == "administrator") {
-      usersQuery = await Users.find({ role: "godfather" }).then(
-        (user) => user
-      );
-    } else if (userQuery.role == "godfather") {
-      usersQuery = await Users.find({
-        role: "leader",
-        ref_godfather: userId,
-      }).then((user) => user);
-    } else if (userQuery.role == "leader") {
-      usersQuery = await Users.find({
-        role: "voter",
-        ref_leader: userId,
-      }).then((user) => user);
-    }
+  const user = await UsersServices.findUserById(userId);
 
-    if (!usersQuery) {
-      throw new Error("Incorret username or password");
-    }
-    return res.status(200).json({
-      status: "Success",
-      message: "Data gotten sucesfully",
-      users: usersQuery,
+  if (!user) throw new ClientError("Dindt find any valid user");
+
+  let users;
+  if (user.role == "administrator") {
+    users = await UsersServices.findUsers({ role: "godfather" });
+  } else if (user.role == "godfather") {
+    users = await UsersServices.findUsers({
+      role: "leader",
+      ref_godfather: userId,
     });
-  } catch (error) {
-    return res.status(400).json({
-      status: "Bad request",
-      mensaje: "Couldnt get users data",
-      error: error.message,
+  } else if (user.role == "leader") {
+    users = await UsersServices.findUsers({
+      role: "voter",
+      ref_leader: userId,
     });
   }
+
+  if (!users) throw new ClientError("Error while searching users");
+
+  response(res, 200, users);
 };
 
 const getUsers = async (req, res) => {
-  try {
-    const role = req.params.role;
-    const ref = req.params.ref;
+  const role = req.params.role;
+  const ref = req.params.ref;
 
-    let usersQuery;
-    if (role == "godfather") {
-      usersQuery = await Users.find({
-        _id: ref,
-        role,
-      }).then((user) => user);
-    } else if (role == "leader") {
-      usersQuery = await Users.find({
-        $or: [
-          {
-            _id: ref,
-            role,
-          },
-          {
-            ref_godfather: ref,
-            role,
-          },
-        ],
-      }).then((user) => user);
-    } else if (role == "voter") {
-      usersQuery = await Users.find({
-        $or: [
-          {
-            ref_godfather: ref,
-            role,
-          },
-          {
-            ref_leader: ref,
-            role,
-          },
-        ],
-      }).then((user) => user);
-    }
-
-    if (!usersQuery) {
-      throw new Error("Incorret username or password");
-    }
-    return res.status(200).json({
-      status: "success",
-      message: "Data get susccefully",
-      users: usersQuery,
+  let users;
+  if (role == "godfather") {
+    users = await UsersServices.findUsers({
+      _id: ref,
+      role,
     });
-  } catch (error) {
-    return res.status(400).json({
-      status: "error",
-      mensaje: "Couldnt store data",
-      error: error.message,
+  } else if (role == "leader") {
+    users = await UsersServices.findUsers({
+      $or: [
+        {
+          _id: ref,
+          role,
+        },
+        {
+          ref_godfather: ref,
+          role,
+        },
+      ],
+    });
+  } else if (role == "voter") {
+    users = await UsersServices.findUsers({
+      $or: [
+        {
+          ref_godfather: ref,
+          role,
+        },
+        {
+          ref_leader: ref,
+          role,
+        },
+      ],
     });
   }
+
+  if (!users) throw new ClientError("Error while searching users");
+
+  response(res, 200, users);
 };
 
-const putUsers = async (req, res) => {
-  try {
-    const bodyParams = req.body;
-    const id = req.params.id;
+const putUser = async (req, res) => {
+  const bodyParams = req.body;
+  const id = req.params.id;
 
-    const userQuery = await Users.findOneAndUpdate(
-      { _id: id },
-      { $set: bodyParams },
-      { new: true }
-    );
+  const user = await UsersServices.updateUser(id, bodyParams, true);
 
-    return res.status(200).json({
-      status: "success",
-      user: userQuery,
-      message: "User updated succesfully",
-    });
-  } catch (error) {
-    return res.status(400).json({
-      status: "error",
-      mensaje: "Couldnt store data",
-      error: error.message,
-    });
-  }
+  if (!user) throw new ClientError("Error while updating user");
+
+  response(res, 200, user);
 };
 
-const deleteUsers = async(req, res) => {
-  try {
-    const id = req.params.id;
-    const userQuery = await Users.findOneAndDelete({ _id: id });
+const deleteUser = async (req, res) => {
+  const id = req.params.id;
 
-    return res.status(200).json({
-      status: "success",
-      user: userQuery,
-      message: "User updated succesfully",
-    });
-  } catch (error) {
-      return res.status(400).json({
-        status: "error",
-        mensaje: "Couldnt store data",
-        error: error.message,
-      });
-  }
-}
+  const user = await UsersServices.deleteUser(id);
+
+  if (!user) throw new ClientError("Error while deleting user");
+
+  response(res, 200, user);
+};
 
 module.exports = {
   testUsers,
-  postUsers,
-  getUsersDashboard,
-  getUsers,
-  putUsers,
-  deleteUsers
+  postUser: catchedAsync(postUser),
+  getUsersDashboard: catchedAsync(getUsersDashboard),
+  getUsers: catchedAsync(getUsers),
+  putUser: catchedAsync(putUser),
+  deleteUser: catchedAsync(deleteUser),
 };

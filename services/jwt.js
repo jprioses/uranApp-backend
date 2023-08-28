@@ -13,7 +13,7 @@ const createToken = (user) => {
     username: user.username,
     ref_users: user.ref_users,
     iat: moment().unix(),
-    exp: moment().add(10, "days").unix(),
+    exp: moment().add(1, "days").unix(),
   };
 
   //Return encoded token

@@ -5,8 +5,8 @@ const connection = async() => {
         await mongoose.connect('mongodb://localhost:27017/uran-app');
         console.log('Connected to database uran-app');
     } catch (error) {
-        console.log(error);
-        throw new Error('Can not access to database');
+        console.log('here')
+        throw new Error(error);
     }
 };
 

@@ -10,9 +10,9 @@ const ClientError = require("../utils/errors");
 //next allows to pass to next middleware or function
 exports.auth = catchedAsync(async (req, res, next) => {
   if (!req.headers.authorization) {
-    throw new ClientError("Request does not have auth header", 403);
+    throw new ClientError("Must provide auth haader", 403);
   }
-
+  
   //Clean token, replace ' and "
   let token = req.headers.authorization.replace(/['"]+/g, "");
 
@@ -26,10 +26,10 @@ exports.auth = catchedAsync(async (req, res, next) => {
     }
     //Add user data to request
     req.user = payload;
+   
   } catch (error) {
     throw new ClientError("Invalid Token", 404);
   }
-
   //Pass to the next functio in this case is the controller
   next();
 });

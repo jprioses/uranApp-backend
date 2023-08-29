@@ -14,14 +14,13 @@ const testUsers = (req, res) => {
 const postUser = async (req, res) => {
   const bodyParams = req.body;
   bodyParams.role = req.params.role;
-
+  bodyParams.ref_godfather = req.params.ref_godfather;
+  bodyParams.ref_leader = req.params.ref_leader;
+  
+  console.log(bodyParams)
   let checkData = ValidateServices.validateNewUserData(bodyParams);
 
   if (!checkData) throw new ClientError("Missing some data");
-
-  if (req.params.ref_godfather)
-    bodyParams.ref_godfather = req.params.ref_godfather;
-  if (req.params.ref_leader) bodyParams.ref_leader = req.params.ref_leader;
 
   const user = await UsersServices.createUser(bodyParams);
 
@@ -60,7 +59,6 @@ const getUsersDashboard = async (req, res) => {
 const getUsers = async (req, res) => {
   const role = req.params.role;
   const ref = req.params.ref;
-
   let users;
   if (role == "godfather") {
     users = await UsersServices.findUsers({

@@ -21,10 +21,17 @@ const deleteUser = (id) => {
   return Users.findOneAndDelete({_id:id});
 };
 
+const updateUsers = (params, newParams) => {
+  return Users.updateMany({ref_leader: params.ref_leader},{ref_leader: newParams.ref_leader, ref_godfather: newParams.ref_godfather}, {new: tue});
+}
+
+
+
 module.exports = {
   findUserById,
   createUser,
   findUsers,
   updateUser,
   deleteUser,
+  updateUsers
 };

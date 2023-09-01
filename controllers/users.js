@@ -16,8 +16,8 @@ const postUser = async (req, res) => {
   bodyParams.role = req.params.role;
   bodyParams.ref_godfather = req.params.ref_godfather;
   bodyParams.ref_leader = req.params.ref_leader;
-  
-  console.log(bodyParams)
+
+  console.log(bodyParams);
   let checkData = ValidateServices.validateNewUserData(bodyParams);
 
   if (!checkData) throw new ClientError("Missing some data");
@@ -119,6 +119,51 @@ const deleteUser = async (req, res) => {
   response(res, 200, user);
 };
 
+const getGodfathers = async (req, res) => {
+
+  const godfathers = await UsersServices.findUsers({
+    role: "godfather",
+  }).select({ _id, name, surename });
+
+  if (!godfathers) throw new ClientError("Error while searching user");
+
+  response(res, 200, godfathers);
+};
+
+const getLeaders = async (req, res) => {
+  const ref_godfather = req.params.ref_godfather;
+
+  const leaders = await UsersServices.findUsers({
+    role: "leader",
+    ref_godfather: ref_godfather
+  }).select({ _id, name, surename });
+
+  if (!leaders) throw new ClientError("Error while searching user");
+
+  response(res, 200, leaders);
+
+}
+
+const updateParents = async (res, req) => {
+    const id = req.params.id
+    const role = req.body.role
+    const ref_godfather = req.body.ref_godfather
+    const ref_leader = req.body.ref_leader
+
+    let users
+    let user
+    if (role == 'leader'){ 
+      users = await UsersServices.updateUsers({ref_leader: id}, {ref_leader, ref_godfather});
+      user = await UsersServices.updateUser(id, {ref_godfather}, true );
+    } else {
+      user = await UsersServices.updateUser(id, {ref_godfather, ref_leader}, true );
+    }
+
+    if (!user) throw new ClientError("Error while updating user");
+
+    response(res, 200, user);
+}
+
 module.exports = {
   testUsers,
   postUser: catchedAsync(postUser),
@@ -126,4 +171,7 @@ module.exports = {
   getUsers: catchedAsync(getUsers),
   putUser: catchedAsync(putUser),
   deleteUser: catchedAsync(deleteUser),
+  getGodfathers: catchedAsync(getGodfathers),
+  getLeaders: catchedAsync(getLeaders),
+  updateParents: catchedAsync(updateParents)
 };

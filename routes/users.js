@@ -9,5 +9,9 @@ router.get('/get-users-dashboard', checkAuth.auth ,Controllers.getUsersDashboard
 router.get('/get-users/:role/:ref', checkAuth.auth ,Controllers.getUsers);
 router.put('/update-users/:id', checkAuth.auth ,Controllers.putUser);
 router.delete('/delete-users/:id', checkAuth.auth ,Controllers.deleteUser);
+router.get('/get-godfathers', checkAuth.auth ,Controllers.getGodfathers);
+router.get('/get-leaders/:ref_godfather', checkAuth.auth ,Controllers.getGodfathers);
+router.put('/update-refs/:id', checkAuth.auth, Controllers.updateParents);
+
 
 module.exports = router;

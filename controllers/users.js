@@ -1,6 +1,6 @@
-const Users = require("../Models/Users");
 const UsersServices = require("../services/users");
 const ValidateServices = require("../services/validate");
+const HistoricsServices =  require('../services/historics');
 const catchedAsync = require("../utils/catchedAsync");
 const { response } = require("../utils/response");
 const ClientError = require("../utils/errors");
@@ -14,10 +14,8 @@ const testUsers = (req, res) => {
 const postUser = async (req, res) => {
   const bodyParams = req.body;
   bodyParams.role = req.params.role;
-  bodyParams.ref_godfather = req.params.ref_godfather;
-  bodyParams.ref_leader = req.params.ref_leader;
+  bodyParams.ref_parent = req.params.ref_parent;
 
-  console.log(bodyParams);
   let checkData = ValidateServices.validateNewUserData(bodyParams);
 
   if (!checkData) throw new ClientError("Missing some data");
@@ -42,12 +40,12 @@ const getUsersDashboard = async (req, res) => {
   } else if (user.role == "godfather") {
     users = await UsersServices.findUsers({
       role: "leader",
-      ref_godfather: userId,
+      ref_parent: userId,
     });
   } else if (user.role == "leader") {
     users = await UsersServices.findUsers({
       role: "voter",
-      ref_leader: userId,
+      ref_parent: userId,
     });
   }
 
@@ -73,20 +71,33 @@ const getUsers = async (req, res) => {
           role,
         },
         {
-          ref_godfather: ref,
+          ref_parent: ref,
           role,
         },
       ],
     });
   } else if (role == "voter") {
+    //If parent is godfather to get all voters
+    //get array of all leaders from that godfather
+    const leaders = await UsersServices.findUsers({
+      ref_parent: ref,
+      role: "leader",
+    });
+
+    let leadersArray = [];
+    if (leaders && leaders._id) {
+      leadersArray = leaders.map((leader) => leader._id);
+    }
+
+    //find all voters who have one of those leaders
     users = await UsersServices.findUsers({
       $or: [
         {
-          ref_godfather: ref,
+          ref_parent: ref,
           role,
         },
         {
-          ref_leader: ref,
+          ref_parent: { $in: leadersArray },
           role,
         },
       ],
@@ -102,9 +113,11 @@ const putUser = async (req, res) => {
   const bodyParams = req.body;
   const id = req.params.id;
 
-  const user = await UsersServices.updateUser(id, bodyParams, true);
+  const user = await UsersServices.updateUser(id, bodyParams, false);
 
   if (!user) throw new ClientError("Error while updating user");
+
+  await HistoricsServices.feedHistoric(id, user, false);
 
   response(res, 200, user);
 };
@@ -116,53 +129,46 @@ const deleteUser = async (req, res) => {
 
   if (!user) throw new ClientError("Error while deleting user");
 
+  await HistoricsServices.feedHistoric(id, user, true);
+
   response(res, 200, user);
 };
 
 const getGodfathers = async (req, res) => {
-
   const godfathers = await UsersServices.findUsers({
     role: "godfather",
   }).select({ _id, name, surename });
 
-  if (!godfathers) throw new ClientError("Error while searching user");
+  if (!godfathers) throw new ClientError("Error while searching godfathers");
 
   response(res, 200, godfathers);
 };
 
 const getLeaders = async (req, res) => {
-  const ref_godfather = req.params.ref_godfather;
+  const ref = req.params.ref;
 
   const leaders = await UsersServices.findUsers({
     role: "leader",
-    ref_godfather: ref_godfather
+    ref_parent: ref,
   }).select({ _id, name, surename });
 
-  if (!leaders) throw new ClientError("Error while searching user");
+  if (!leaders) throw new ClientError("Error while searching leaders");
 
   response(res, 200, leaders);
-
-}
+};
 
 const updateParents = async (res, req) => {
-    const id = req.params.id
-    const role = req.body.role
-    const ref_godfather = req.body.ref_godfather
-    const ref_leader = req.body.ref_leader
+  const id = req.params.id;
+  const ref_parent = req.body.ref_parent;
+ 
+  const user = await UsersServices.updateUser(id, { ref_parent }, true);
+  
+  if (!user) throw new ClientError("Error while updating user");
 
-    let users
-    let user
-    if (role == 'leader'){ 
-      users = await UsersServices.updateUsers({ref_leader: id}, {ref_leader, ref_godfather});
-      user = await UsersServices.updateUser(id, {ref_godfather}, true );
-    } else {
-      user = await UsersServices.updateUser(id, {ref_godfather, ref_leader}, true );
-    }
+  await HistoricsServices.feedHistoric(id, user, false);
 
-    if (!user) throw new ClientError("Error while updating user");
-
-    response(res, 200, user);
-}
+  response(res, 200, user);
+};
 
 module.exports = {
   testUsers,
@@ -173,5 +179,5 @@ module.exports = {
   deleteUser: catchedAsync(deleteUser),
   getGodfathers: catchedAsync(getGodfathers),
   getLeaders: catchedAsync(getLeaders),
-  updateParents: catchedAsync(updateParents)
+  updateParents: catchedAsync(updateParents),
 };

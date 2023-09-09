@@ -44,6 +44,7 @@ app.listen(port, () => {
 //2 --> Create history log database for eliminated and updated data
 //3 --> Upload images
 //4 --> Create comments per user and get them
-//5 --> Create credentials to godfathers and leaders users
-//6 --> Change users leader and godfather refs, or automatically given lonely users to campaing user
-//7 --> Feed polling places data
+//5 --> Create credentials to godfathers and leaders users. -<<<<<<<<< Done
+//6 --> Change users leader and godfather refs
+//7 --> automatically add lonely users to campaing user
+//8 --> Feed polling places data

@@ -27,18 +27,13 @@ const UsersSchema = new Schema({
     },
     ref_polling_place: {
         type: Schema.ObjectId,
-        ref: "polling_place",
+        ref: "PollingPlaces",
         required : false
     },
     polling_table: Number,
-    ref_godfather: {
+    ref_parent: {
         type: Schema.ObjectId,
-        ref: "UserData",
-        required : false
-    },
-    ref_leader: {
-        type: Schema.ObjectId,
-        ref: "UserData",
+        ref: "Users",
         required : false
     },
     photo: {

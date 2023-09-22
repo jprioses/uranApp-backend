@@ -1,16 +1,29 @@
 const Credentials = require("../Models/Credentials");
 
-const findCredentials = ({ username }) => {
-  return Credentials.findOne({
-    username: username.toLowerCase(),
-  }).then((user) => user);
+const findCredentialsById = (id) => {
+  return Credentials.findById(id);
+}
+
+const findCredentials = (params) => {
+  return Credentials.find(params);
 };
 
-const saveCredential = (data, user) => {
+const saveCredentials = (data, user) => {
   return new Credentials(data).save();
 };
 
+const updateCredentials = (id, params) => {
+  return Credentials.findByIdAndUpdate(id, params, {new: true})
+}
+
+const deleteCredentials = (params) => {
+  return Credentials.findOneAndDelete(params)
+}
+
 module.exports = {
+  findCredentialsById,
   findCredentials,
-  saveCredential,
+  saveCredentials,
+  updateCredentials,
+  deleteCredentials
 };

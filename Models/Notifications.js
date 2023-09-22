@@ -1,18 +1,21 @@
 const {Schema, model} = require('mongoose');
 
 const NotificationsSchema = new Schema({
-    type: {
-        type: String,
+    ref_parent: {
+        type: Schema.ObjectId,
+        ref: "Users",
         required : true
     },
-    date: {
-        type: Date,
-        default: Date.now
-    },
-    description: String,
     ref_users: {
         type: Schema.ObjectId,
         ref: "Users",
+        required : true
+    },
+    recovery: {
+        type: Object,
+    },
+    type: {
+        type: String,
         required : true
     },
     created_at: {

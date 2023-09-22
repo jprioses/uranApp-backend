@@ -3,8 +3,9 @@ const router = express.Router();
 const Controllers = require('../controllers/credentials');
 const checkAuth = require('../middlewares/auth')
 
-router.get('/test-user', checkAuth.auth, Controllers.testCredentials);
-router.post('/add-user/:user', Controllers.postCredentials);
-router.post('/login', Controllers.postCredentialsLogin);
+router.get('/test', checkAuth.auth, Controllers.testCredentials);
+router.post('/add/:user_id', checkAuth.auth, Controllers.createCredentials);
+router.post('/login', Controllers.login);
+router.put('/update/:user_id', checkAuth.auth, Controllers.updateCredentials);
 
 module.exports = router;

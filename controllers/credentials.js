@@ -2,6 +2,7 @@ const JwtService = require("../services/jwt");
 const CredentialsServices = require("../services/credentials");
 const UsersServices = require("../services/users");
 const EncryptServices = require("../services/encrypt");
+const NotificationsServices = require("../services/notifications");
 const catchedAsync = require("../utils/catchedAsync");
 const { response } = require("../utils/response");
 const ClientError = require("../utils/errors");
@@ -13,60 +14,142 @@ const testCredentials = (req, res) => {
 };
 
 //Create user
-const postCredentials = async (req, res) => {
-  let bodyParams = req.body;
+const createCredentials = async (req, res) => {
+  const params = req.body;
+  const userId = req.params.user_id;
 
-  if (!bodyParams.username || !bodyParams.password)
+ 
+  if (!params.username || !params.password)
     throw new ClientError("Must type username and password");
 
-  const credentialQuery = await CredentialsServices.findCredentials(bodyParams);
+  const credentialsQuery = await CredentialsServices.findCredentials({
+    username: params.username.toLowerCase(),
+  });
 
-  if (credentialQuery && credentialQuery.length >= 1)
+
+  if (credentialsQuery && credentialsQuery.length >= 1)
     throw new ClientError("Username already taken");
 
-  const userQuery = await UsersServices.findUserById(req.params.user);
+  const userQuery = await CredentialsServices.findCredentials({
+    ref_users: userId,
+  });
 
-  if (!userQuery) throw new new ClientError("Must give valid user id")();
+  if (userQuery && userQuery.length >= 1)
+    throw new ClientError("User already has credentials");
 
-  const pwd = await EncryptServices.encryptPassword(bodyParams);
+  const user = await UsersServices.findUsersById(userId);
 
-  bodyParams.password = pwd;
-  bodyParams.ref_users = req.params.user;
+  if (!user) throw new ClientError("Must give valid user id");
 
-  const credential = await CredentialsServices.saveCredential(bodyParams);
+  const pwd = await EncryptServices.encryptPassword(params.password);
 
-  response(res, 200, credential);
+  params.password = pwd;
+  params.ref_users = userId;
+
+  const credentials = await CredentialsServices.saveCredentials(params);
+  await NotificationsServices.createNotifications(
+    req.user.ref_users,
+    userId,
+    "credentials created"
+  );
+
+  response(res, 200, {
+    _id: credentials._id,
+    username: credentials.username,
+    ref_users: credentials.ref_users,
+  });
 };
 
-const postCredentialsLogin = async (req, res) => {
-  const bodyParams = req.body;
+const login = async (req, res) => {
+  const params = req.body;
 
-  if (!bodyParams.username || !bodyParams.password)
+  if (!params.username || !params.password)
     throw new ClientError("Must type username and password");
 
-  const credential = await CredentialsServices.findCredentials(bodyParams);
+  const credentials = await CredentialsServices.findCredentials({
+    username: params.username.toLowerCase(),
+  });
 
-  if (!credential) throw new ClientError("Incorret username");
+  if (!credentials || credentials.length == 0) throw new ClientError("Incorrect username or password");
+  
 
   const pwd = EncryptServices.decryptPassword(
-    bodyParams.password,
-    credential.password
+    params.password,
+    credentials[0].password
   );
 
   if (!pwd) throw new ClientError("Incorret password");
 
-  const token = JwtService.createToken(credential);
+  const token = JwtService.createToken(credentials[0]);
 
   response(res, 200, {
-    _id: credential._id,
-    username: credential.username,
-    ref_users: credential.ref_users,
+    _id: credentials._id,
+    username: credentials.username,
+    ref_users: credentials.ref_users,
     token,
   });
 };
 
+const updateCredentials = async (req, res) => {
+  const userId = req.params.user_id;
+  const bodyParams = req.body;
+  const params = {};
+
+  //Get user credentials
+  const credentials = await CredentialsServices.findCredentials({ref_users: userId});
+
+  if (!credentials) throw new ClientError("Incorret user");
+
+  if (bodyParams.username && bodyParams.username.length > 0)
+    params.username = bodyParams.username;
+  if (bodyParams.password) {
+    //get and decrypt old password
+
+    if (!bodyParams.newPassword || bodyParams.newPassword.length == 0)
+      throw new ClientError("Must provide a new password");
+
+    const oldPwd = EncryptServices.decryptPassword(
+      bodyParams.password,
+      credentials[0].password
+    );
+
+    if (!oldPwd) throw new ClientError("Incorret password");
+
+    //encrypt new password
+    const pwd = await EncryptServices.encryptPassword(bodyParams.newPassword);
+
+    params.password = pwd;
+  }
+
+  //update credentials qith new password and username
+
+  if (Object.keys(params).length > 0) {
+    const newCredentials = await CredentialsServices.updateCredentials(
+      credentials[0]._id,
+      params
+    );
+
+    if (!newCredentials) throw new ClientError("Couldn´t update credentials");
+
+    await NotificationsServices.createNotifications(
+      req.user.ref_users,
+      userId,
+      "credentials updated"
+    );
+
+    response(res, 200, {
+      _id: newCredentials._id,
+      username: newCredentials.username,
+      ref_users: newCredentials.ref_users,
+    });
+  } else {
+    throw new ClientError("Couldn't update credentials");
+  }
+};
+
 module.exports = {
   testCredentials,
-  postCredentials: catchedAsync(postCredentials),
-  postCredentialsLogin: catchedAsync(postCredentialsLogin),
+  createCredentials: catchedAsync(createCredentials),
+  login: catchedAsync(login),
+  updateCredentials: catchedAsync(updateCredentials),
 };

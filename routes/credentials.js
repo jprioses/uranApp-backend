@@ -8,4 +8,6 @@ router.post('/add/:user_id', checkAuth.auth, Controllers.createCredentials);
 router.post('/login', Controllers.login);
 router.put('/update/:user_id', checkAuth.auth, Controllers.updateCredentials);
 
+router.get('/get/:user_id', checkAuth.auth, Controllers.getCredentials);
+
 module.exports = router;

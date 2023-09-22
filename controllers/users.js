@@ -66,7 +66,7 @@ const getUsersDashboard = async (req, res) => {
 
   if (!users) throw new ClientError("Error while searching users");
 
-  response(res, 200, {user: user, users: users});
+  response(res, 200, { user: user, users: users });
 };
 
 const getUsers = async (req, res) => {
@@ -124,6 +124,18 @@ const getUsers = async (req, res) => {
   response(res, 200, users);
 };
 
+const getAllChildren = async (req, res) => {
+  const role = req.params.role;
+
+  const users = await UsersServices.findUsers({
+    role,
+  });
+
+  if (!users) throw new ClientError("Error while searching users");
+
+  response(res, 200, users);
+};
+
 const updateUsers = async (req, res) => {
   const params = req.body;
   const id = req.params.id;
@@ -159,7 +171,6 @@ const deleteUsers = async (req, res) => {
     fs.stat(filePath, (error, exist) => {
       if (exist) fs.unlinkSync(filePath);
     });
-    
   }
 
   //Find and delete credentials
@@ -301,7 +312,7 @@ const uploadAvatar = async (req, res) => {
   response(res, 200, user);
 };
 
-const getAvatar = async(req, res) => {
+const getAvatar = async (req, res) => {
   const file = req.params.file;
   const filePath = "./uploads/avatars/" + file;
 
@@ -319,6 +330,7 @@ module.exports = {
   createUsers: catchedAsync(createUsers),
   getUsersDashboard: catchedAsync(getUsersDashboard),
   getUsers: catchedAsync(getUsers),
+  getAllChildren: catchedAsync(getAllChildren),
   updateUsers: catchedAsync(updateUsers),
   deleteUsers: catchedAsync(deleteUsers),
   getGodfathers: catchedAsync(getGodfathers),

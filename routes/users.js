@@ -15,6 +15,8 @@ router.get('/get-godfathers', checkAuth.auth ,Controllers.getGodfathers);
 router.get('/get-leaders/:parent', checkAuth.auth ,Controllers.getLeaders);
 router.put('/update-parents/:id', checkAuth.auth, Controllers.updateParent);
 
+router.get('/get-all-children/:role', checkAuth.auth ,Controllers.getAllChildren);
+
 //routes to upload and get avatars
 router.post('/upload-avatar/:id', [checkAuth.auth, uploads.single('file0')] ,Controllers.uploadAvatar);
 router.get('/get-avatar/:file', Controllers.getAvatar);

@@ -1,8 +1,11 @@
 const mongoose = require('mongoose');
 
+//'mongodb://localhost:27017/uran-app'
+//mongodb+srv://jpriosescobar:1037634540@cluster0.fmjhghl.mongodb.net/
+
 const connection = async() => {
     try {
-        await mongoose.connect('mongodb://localhost:27017/uran-app');
+        await mongoose.connect('mongodb+srv://jpriosescobar:1037634540@cluster0.fmjhghl.mongodb.net/');
         console.log('Connected to database uran-app');
     } catch (error) {
         console.log('here')

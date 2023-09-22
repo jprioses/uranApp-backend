@@ -5,7 +5,7 @@ const mongoose = require('mongoose');
 
 const connection = async() => {
     try {
-        await mongoose.connect('mongodb+srv://jpriosescobar:1037634540@cluster0.fmjhghl.mongodb.net/');
+        await mongoose.connect('mongodb+srv://jpriosescobar:1037634540@cluster0.fmjhghl.mongodb.net/uran-app');
         console.log('Connected to database uran-app');
     } catch (error) {
         console.log('here')

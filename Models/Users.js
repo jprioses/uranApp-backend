@@ -13,11 +13,8 @@ const UsersSchema = new Schema({
         type: Number,
         required : true
     },
-    address: {
-        type: String,
-        required: true
-    },
-    neighborhood: Number,
+    address: String,
+    neighborhood: String,
     phone: Number,
     whatsapp: Number,
     email: String,
